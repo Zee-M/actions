@@ -1,9 +1,25 @@
 name: 'Chkk Kubernetes Manifests'
 description: 'Check your Kubernetes manifests for reliability risks'
 inputs:
-  kubernetes-manifest:
-    description: 'Kubernetes manifest to check'
+  type:
+    description: 'Type of entity to run checks on'
     required: true
+  kubernetes-manifest:
+    description: 'Path to Kubernetes manifest'
+    required: false
+  kubernetes-directory:
+    description: 'Path to directory containing Kubernetes manifests'
+    required: false
+  helm-chart:
+    description: 'Path to Helm Chart to check'
+    required: false
+  helm-version:
+    description: 'Version of Helm used'
+    required: false
+    default: 'v3'
+  helm-parameters:
+    description: 'Addition parameters to pass Helm'
+    required: false
   skip-checks:
     description: 'List of checks to skip'
     required: false
@@ -19,9 +35,58 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - run: curl -Lo chkk https://downloads.chkk.dev/v0.0.1/chkk-linux-amd64
-      shell: bash
-    - run: chmod +x chkk
-      shell: bash
-    - run: ${{ github.workspace }}/chkk -f ${{ inputs.kubernetes-manifest }} -s ${{ inputs.skip-checks }} -r ${{ inputs.run-checks }} ${{ inputs.args }}
+    - run: |
+        exitWithMessage () {
+          echo "$1"
+          exit 1
+        }
+
+        downloadChkk () {
+          curl -Lo chkk https://downloads.chkk.dev/v0.0.1/chkk-linux-amd64
+          chmod +x chkk
+        }
+
+        case ${{ inputs.type }} in
+
+          manifest)
+            K8S_MANIFEST=${{ inputs.kubernetes-manifest }}
+            if [[ -z $K8S_MANIFEST ]]; then
+              exitWithMessage "Required argument kubernetes-manifest not set";
+            fi
+            downloadChkk
+            ${{ github.workspace }}/chkk -f ${{ inputs.kubernetes-manifest }} -s ${{ inputs.skip-checks }} -r ${{ inputs.run-checks }} ${{ inputs.args }}
+            ;;
+
+          directory)
+            K8S_DIRECTORY=${{ inputs.kubernetes-directory }}
+            if [[ -z $K8S_DIRECTORY ]]; then
+              exitWithMessage "Required argument kubernetes-directory not set";
+            fi
+            downloadChkk
+            ${{ github.workspace }}/chkk -d ${{ inputs.kubernetes-directory }} -s ${{ inputs.skip-checks }} -r ${{ inputs.run-checks }} ${{ inputs.args }}
+            ;;
+
+          helm)
+            HELM_CHART=${{ inputs.helm-chart }}
+            if [[ -z $HELM_CHART ]]; then
+              exitWithMessage "Required argument helm-chart not set";
+            fi
+            if [[ ${{ inputs.helm-version }} = "v3" ]]; then
+              echo "Using helm v3";
+              curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3;
+              chmod 700 get_helm.sh;
+              ./get_helm.sh;
+            elif [[ ${{ inputs.helm-version }} = "v2" ]]; then
+              echo "Using helm v2";
+              curl -sSL https://get.helm.sh/helm-v2.16.6-linux-amd64.tar.gz | tar zx;
+              sudo cp linux-amd64/helm /usr/local/bin/helm;
+            fi
+            downloadChkk
+            helm template ${{ github.workspace }}/${{ inputs.helm-chart }} ${{ inputs.helm-parameters }} | ${{ github.workspace }}/chkk -f - -r ${{ inputs.run-checks }} -s ${{ inputs.skip-checks }} ${{ inputs.args }}
+            ;;
+
+          *)
+            echo exitWithMessage "Unsupported type entered"
+            ;;
+        esac
       shell: bash
