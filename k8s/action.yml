@@ -8,15 +8,12 @@ inputs:
   kubernetes-manifest:
     description: 'Path to Kubernetes manifest'
     required: false
-    default: 'k8s-manifest.yaml'
   kubernetes-directory:
     description: 'Path to directory containing Kubernetes manifests'
     required: false
-    default: '.'
   helm-chart:
     description: 'Path to Helm Chart to check'
     required: false
-    default: '.'
   helm-version:
     description: 'Version of Helm used'
     required: false
