@@ -1,18 +1,22 @@
 name: 'Chkk Kubernetes Manifests'
 description: 'Check your Kubernetes manifests for reliability risks'
 inputs:
-  type:
+  scan-type:
     description: 'Type of entity to run checks on'
     required: true
+    default: 'manifest'
   kubernetes-manifest:
     description: 'Path to Kubernetes manifest'
     required: false
+    default: 'k8s-manifest.yaml'
   kubernetes-directory:
     description: 'Path to directory containing Kubernetes manifests'
     required: false
+    default: '.'
   helm-chart:
     description: 'Path to Helm Chart to check'
     required: false
+    default: '.'
   helm-version:
     description: 'Version of Helm used'
     required: false
@@ -28,6 +32,10 @@ inputs:
     description: 'List of checks to run'
     required: false
     default: "default"
+  check-type:
+    description: 'Type of check to run. [all/reliability/security]'
+    required: false
+    default: 'reliability'
   args:
     description: 'Additional arguments to pass to Chkk'
     required: false
@@ -46,7 +54,7 @@ runs:
           chmod +x chkk
         }
 
-        case ${{ inputs.type }} in
+        case ${{ inputs.scan-type }} in
 
           manifest)
             K8S_MANIFEST=${{ inputs.kubernetes-manifest }}
@@ -54,7 +62,7 @@ runs:
               exitWithMessage "Required argument kubernetes-manifest not set";
             fi
             downloadChkk
-            ${{ github.workspace }}/chkk -f ${{ inputs.kubernetes-manifest }} -s ${{ inputs.skip-checks }} -r ${{ inputs.run-checks }} ${{ inputs.args }}
+            ${{ github.workspace }}/chkk -f ${{ inputs.kubernetes-manifest }} -s ${{ inputs.skip-checks }} -r ${{ inputs.run-checks }} -t ${{ inputs.check-type }} ${{ inputs.args }}
             ;;
 
           directory)
@@ -63,7 +71,7 @@ runs:
               exitWithMessage "Required argument kubernetes-directory not set";
             fi
             downloadChkk
-            ${{ github.workspace }}/chkk -d ${{ inputs.kubernetes-directory }} -s ${{ inputs.skip-checks }} -r ${{ inputs.run-checks }} ${{ inputs.args }}
+            ${{ github.workspace }}/chkk -d ${{ inputs.kubernetes-directory }} -s ${{ inputs.skip-checks }} -r ${{ inputs.run-checks }} -t ${{ inputs.check-type }} ${{ inputs.args }}
             ;;
 
           helm)
@@ -82,7 +90,7 @@ runs:
               sudo cp linux-amd64/helm /usr/local/bin/helm;
             fi
             downloadChkk
-            helm template ${{ github.workspace }}/${{ inputs.helm-chart }} ${{ inputs.helm-parameters }} | ${{ github.workspace }}/chkk -f - -r ${{ inputs.run-checks }} -s ${{ inputs.skip-checks }} ${{ inputs.args }}
+            helm template ${{ github.workspace }}/${{ inputs.helm-chart }} ${{ inputs.helm-parameters }} | ${{ github.workspace }}/chkk -f - -r ${{ inputs.run-checks }} -s ${{ inputs.skip-checks }} -t ${{ inputs.check-type }} ${{ inputs.args }}
             ;;
 
           *)
