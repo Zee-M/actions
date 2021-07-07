@@ -20,7 +20,9 @@ runs:
   using: "composite"
   steps:
     - run: apt-get update && apt-get -y docker.io
+      shell: bash
     - run: docker run -d --name chkk-engine -p 5099:8000 public.ecr.aws/i1v3p4q2/chkk-engine:v0.7
+      shell: bash
     - run: curl -Lo chkk https://downloads.chkk.dev/v0.0.1/chkk-linux-amd64
       shell: bash
     - run: chmod +x chkk
