@@ -19,6 +19,8 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - run: set -xv
+      shell: bash
     - run: apt-get update && apt-get -y docker.io
       shell: bash
     - run: docker run -d --name chkk-engine -p 5099:8000 public.ecr.aws/i1v3p4q2/chkk-engine:v0.7
