@@ -1,5 +1,5 @@
-name: 'Chkk Kubernetes Manifests'
-description: 'Check your Kubernetes manifests for reliability risks'
+name: 'Chkk Offline'
+description: 'Check your Kubernetes manifests locally'
 inputs:
   kubernetes-manifest:
     description: 'Kubernetes manifest to check'
@@ -19,9 +19,11 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - run: apt-get update && apt-get -y docker.io
+    - run: docker run -d --name chkk-engine -p 5099:8000 public.ecr.aws/i1v3p4q2/chkk-engine:v0.7
     - run: curl -Lo chkk https://downloads.chkk.dev/v0.0.1/chkk-linux-amd64
       shell: bash
     - run: chmod +x chkk
       shell: bash
-    - run: ${{ github.workspace }}/chkk -f ${{ inputs.kubernetes-manifest }} -s ${{ inputs.skip-checks }} -r ${{ inputs.run-checks }} ${{ inputs.args }}
+    - run: ${{ github.workspace }}/chkk -f ${{ inputs.kubernetes-manifest }} --endpoint http://localhost:5099 -s ${{ inputs.skip-checks }} -r ${{ inputs.run-checks }} ${{ inputs.args }}
       shell: bash
